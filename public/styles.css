@@ -3,7 +3,7 @@
   --bg: #101416; --surface: #191f21; --surface-2: #222a2c; --ink: #edf2ee;
   --muted: #9caeaa; --line: #2c3637; --mint: #c0edba; --mint-dark: #192c20;
   --danger: #efb1aa; --orange: #edc58e;
-  font: 14px/1.5 Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font: 14px/1.5 Inter, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; color: var(--ink); background: var(--bg); }
@@ -107,3 +107,5 @@ dialog { max-width: 510px; width: calc(100% - 32px); max-height: calc(100dvh - 5
 @media (max-width: 850px) { .stage { min-height: 330px; }.empty-illustration { height: 78px; margin-bottom: 8px; } }
 @media (max-width: 640px) { .stage { min-height: 275px; }.empty-illustration { height: 73px; margin-bottom: 6px; } }
 .stage:fullscreen { min-height: 0; }
+.button.sharing:hover:not(:disabled) { background: #f4d9b1; }
+@media (min-width: 1201px) { .footer { padding-left: 38px; padding-right: 38px; } }
