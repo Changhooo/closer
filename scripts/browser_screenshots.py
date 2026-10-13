@@ -121,7 +121,7 @@ async def wait_for(page, predicate, timeout=30000):
 
 async def assert_layout(page, label, checks):
     result = await page.evaluate("""() => {
-      const visible = [...document.querySelectorAll('button, input, select, .panel, .viewer-panel')].filter((el) => {
+      const visible = [...document.querySelectorAll('button, input, select, .panel, .viewer-panel, .stage, #screenVideo, #stageOverlay')].filter((el) => {
         const r = el.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden';
       });
@@ -137,9 +137,11 @@ async def assert_layout(page, label, checks):
         const r = el.getBoundingClientRect();
         return r.top < stageRect.top - 1 || r.bottom > stageRect.bottom + 1;
       }).map(el => el.id);
-      return {overflow: document.documentElement.scrollWidth > innerWidth + 1, clipped, hiddenEmptyControls};
+      const viewer = stage.closest('.viewer-panel').getBoundingClientRect();
+      const oversizedStage = stageRect.width > viewer.width + 1;
+      return {overflow: document.documentElement.scrollWidth > innerWidth + 1, clipped, hiddenEmptyControls, oversizedStage};
     }""")
-    assert not result['overflow'] and not result['clipped'] and not result['hiddenEmptyControls'], f'{label}: {result}'
+    assert not result['overflow'] and not result['clipped'] and not result['hiddenEmptyControls'] and not result['oversizedStage'], f'{label}: {result}'
     checks.append(label)
 
 

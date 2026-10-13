@@ -107,5 +107,6 @@ dialog { max-width: 510px; width: calc(100% - 32px); max-height: calc(100dvh - 5
 @media (max-width: 850px) { .stage { min-height: 330px; }.empty-illustration { height: 78px; margin-bottom: 8px; } }
 @media (max-width: 640px) { .stage { min-height: 275px; }.empty-illustration { height: 73px; margin-bottom: 6px; } }
 .stage:fullscreen { min-height: 0; }
+.stage { width: 100%; min-width: 0; }
 .button.sharing:hover:not(:disabled) { background: #f4d9b1; }
 @media (min-width: 1201px) { .footer { padding-left: 38px; padding-right: 38px; } }
