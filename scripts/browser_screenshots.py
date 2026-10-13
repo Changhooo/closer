@@ -23,6 +23,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 SCREEN_SOURCE = r"""
 (() => {
+  const NativePeerConnection = window.RTCPeerConnection;
+  window.__browserTestConnections = [];
+  window.RTCPeerConnection = class extends NativePeerConnection {
+    constructor(configuration) { super(configuration); window.__browserTestConnections.push(this); }
+  };
   const media = navigator.mediaDevices;
   if (!media) return;
   media.getDisplayMedia = async () => {
@@ -62,10 +67,13 @@ SCREEN_SOURCE = r"""
       ctx.fillStyle = '#3d5b3b'; ctx.font = '19px sans-serif'; ctx.fillText('测试音轨已开启', 1015, 562);
       ctx.fillStyle = '#778575'; ctx.font = '18px sans-serif';
       ctx.fillText('合成音视频测试源 · 非用户桌面 · 用于界面与传输验证', 60, 672);
-      tick++; requestAnimationFrame(draw);
+      tick++; window.__browserTestFrames = tick;
     };
     draw();
     const stream = canvas.captureStream(15);
+    // requestAnimationFrame can stop when a different test page is foreground.
+    // A timer plus explicit frame requests keeps this synthetic source live.
+    setInterval(() => { draw(); stream.getVideoTracks()[0].requestFrame(); }, 1000 / 15);
     const sound = new AudioContext();
     await sound.resume();
     const oscillator = sound.createOscillator(), gain = sound.createGain(), destination = sound.createMediaStreamDestination();
@@ -236,9 +244,24 @@ async def run(output, origin):
                 'input': 'Chromium fake microphone; labeled canvas plus test tone as display source',
                 'scope': 'Real Chromium render, three-page WebRTC, responsive layout and controls; no OS capture chooser, Windows installer, physical device or cross-network TURN test.'}
         except Exception:
+            diagnostics = []
             for index, page in enumerate(pages if 'pages' in locals() else []):
                 if not page.is_closed():
+                    diagnostics.append(await page.evaluate("""async () => {
+                      const video = document.getElementById('screenVideo');
+                      const connections = [];
+                      for (const pc of window.__browserTestConnections || []) {
+                        const reports = [...(await pc.getStats()).values()].filter(r => ['outbound-rtp','inbound-rtp'].includes(r.type));
+                        connections.push({state:pc.connectionState, ice:pc.iceConnectionState,
+                          slots:pc.getTransceivers().map(t => ({mid:t.mid, direction:t.currentDirection, send:t.sender.track?.kind, sendState:t.sender.track?.readyState, receive:t.receiver.track?.kind, receiveMuted:t.receiver.track?.muted})),
+                          media:reports.map(r => ({kind:r.kind, bytesSent:r.bytesSent, bytesReceived:r.bytesReceived, framesEncoded:r.framesEncoded, framesDecoded:r.framesDecoded}))});
+                      }
+                      return {visibility:document.visibilityState, fixtureFrames:window.__browserTestFrames,
+                        video:{hidden:video.hidden,width:video.videoWidth,height:video.videoHeight,readyState:video.readyState,paused:video.paused, tracks:video.srcObject?.getTracks().map(t=>({kind:t.kind,muted:t.muted,state:t.readyState}))}, connections};
+                    }"""))
                     await page.screenshot(path=str(output / f'failure-{index}.png'), full_page=True)
+            (output / 'diagnostics.json').write_text(json.dumps({'checks':checks,'errors':errors,'pages':diagnostics}, indent=2) + '\n')
+            print(json.dumps({'browser_diagnostics':diagnostics, 'errors':errors}))
             raise
         finally:
             for context in contexts:
