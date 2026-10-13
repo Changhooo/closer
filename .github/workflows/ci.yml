@@ -1,0 +1,36 @@
+name: Check application
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - run: pip install -r requirements-test.txt
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm test
+      - run: python -m unittest discover -s tests -v
+      - run: docker build -t tongping-lite:test .
+      - run: |
+          docker run --rm -d --name tongping-lite-test -p 127.0.0.1:8080:8080 tongping-lite:test
+          python - <<'PY'
+          import time, urllib.request
+          for attempt in range(20):
+              try:
+                  print(urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2).read().decode())
+                  break
+              except Exception:
+                  if attempt == 19:
+                      raise
+                  time.sleep(0.5)
+          PY
+      - if: always()
+        run: docker rm -f tongping-lite-test || true

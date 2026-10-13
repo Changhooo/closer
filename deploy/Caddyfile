@@ -1,0 +1,10 @@
+{$SHARE_DOMAIN} {
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        Referrer-Policy "no-referrer"
+    }
+    # Caddy handles WebSocket upgrades automatically. Do not enable access logs
+    # unless you intend to retain room URLs and participant IP addresses.
+    reverse_proxy app:8080
+}

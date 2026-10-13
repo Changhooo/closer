@@ -1,0 +1,19 @@
+# Use this instead of Caddy when you already have an HTTPS reverse proxy.
+# Start the app with HOST=127.0.0.1 PORT=8080 PUBLIC_ORIGIN=https://share.example.com.
+# Replace domain/certificate paths with YOUR existing values.
+server {
+    listen 443 ssl;
+    server_name share.example.com;
+    ssl_certificate /etc/letsencrypt/live/share.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/share.example.com/privkey.pem;
+    access_log off;
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}

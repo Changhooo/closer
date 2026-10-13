@@ -1,0 +1,29 @@
+# Optional overlay; Linux host networking avoids a large Docker UDP port mapping.
+# docker compose -f compose.yml -f compose.turn.yml up -d --build
+services:
+  turn:
+    image: coturn/coturn:latest
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - -n
+      - --log-file=stdout
+      - --fingerprint
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SECRET:?Configure TURN_SECRET}
+      - --realm=${TURN_DOMAIN:?Configure TURN_DOMAIN}
+      - --external-ip=${TURN_PUBLIC_IP:?Configure TURN_PUBLIC_IP}
+      - --listening-port=3478
+      - --min-port=49160
+      - --max-port=49200
+      - --no-cli
+      - --no-tls
+      - --no-dtls
+      - --no-loopback-peers
+      - --no-multicast-peers
+      - --denied-peer-ip=10.0.0.0-10.255.255.255
+      - --denied-peer-ip=172.16.0.0-172.31.255.255
+      - --denied-peer-ip=192.168.0.0-192.168.255.255
+      - --denied-peer-ip=169.254.0.0-169.254.255.255
+      - --user-quota=16
+      - --total-quota=256

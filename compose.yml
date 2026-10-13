@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      PUBLIC_ORIGIN: https://${SHARE_DOMAIN:?Set SHARE_DOMAIN in .env}
+      ACCESS_KEY: ${ACCESS_KEY:-}
+      MAX_PARTICIPANTS: ${MAX_PARTICIPANTS:-6}
+      MAX_ROOMS: ${MAX_ROOMS:-200}
+      STUN_URLS: ${STUN_URLS:-stun:stun.cloudflare.com:3478}
+      TURN_URLS: ${TURN_URLS:-}
+      TURN_SECRET: ${TURN_SECRET:-}
+      RELAY_ONLY: ${RELAY_ONLY:-false}
+      ROOM_TTL_SECONDS: ${ROOM_TTL_SECONDS:-21600}
+      IDLE_TTL_SECONDS: ${IDLE_TTL_SECONDS:-1800}
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    expose:
+      - '8080'
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SHARE_DOMAIN: ${SHARE_DOMAIN:?Set SHARE_DOMAIN in .env}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  caddy_data:
+  caddy_config:
