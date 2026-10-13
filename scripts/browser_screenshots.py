@@ -231,14 +231,14 @@ async def run(output, origin):
             await friend.set_viewport_size({'width': 390, 'height': 844})
             await friend.screenshot(path=str(output / 'room-mobile.png'), full_page=True)
             await owner.locator('#micButton').click()
-            assert await owner.locator('#micButton').get_attribute('aria-pressed') == 'false'
+            await wait_for(owner, "document.getElementById('micButton').getAttribute('aria-pressed') === 'false'")
             assert await owner.locator('#systemAudioButton').get_attribute('aria-pressed') == 'true'
             await wait_for(friend, "!document.getElementById('screenVideo').hidden && document.getElementById('screenVideo').readyState >= 2")
             checks.append('microphone mute leaves shared screen and desktop-audio enabled')
             await owner.locator('#shareButton').click()
             await wait_for(friend, "!document.getElementById('shareButton').disabled")
             await friend.locator('#shareButton').click()
-            await wait_for(owner, "!document.getElementById('screenVideo').hidden && document.getElementById('screenVideo').videoWidth > 0")
+            await wait_for(owner, "document.getElementById('stageStatus').textContent.includes('小林 正在共享') && !document.getElementById('screenVideo').hidden && document.getElementById('screenVideo').videoWidth > 0")
             checks.append('screen sharing handoff enables the next participant and delivers new video')
             await friend.locator('#shareButton').click()
             await owner.locator('#leaveButton').click()
