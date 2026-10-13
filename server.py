@@ -361,11 +361,11 @@ def create_app(settings=None):
     app.cleanup_ctx.append(service.lifecycle)
 
     async def config(request):
-        return web.json_response({"name": "同屏 Lite", "version": "1.1.0", "maxParticipants": settings.max_participants,
+        return web.json_response({"name": "同屏 Lite", "version": "1.1.1", "maxParticipants": settings.max_participants,
                                   "accessKeyRequired": bool(settings.access_key), "turnConfigured": bool(settings.turn_urls)})
 
     async def health(request):
-        return web.json_response({"status": "ok", "version": "1.1.0"})
+        return web.json_response({"status": "ok", "version": "1.1.1"})
 
     async def index(request):
         if "id" in request.match_info and not ROOM_ID.fullmatch(request.match_info["id"]):

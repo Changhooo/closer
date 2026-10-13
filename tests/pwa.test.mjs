@@ -9,7 +9,7 @@ function worker() {
   const response = new Response('public asset');
   const cache = { async put(request) { puts.push(request.url); }, async addAll() {} };
   const self = { location: { origin: 'https://share.example.test' }, addEventListener(type, fn) { events.set(type, fn); }, clients: { async claim() {} }, async skipWaiting() {} };
-  const caches = { async open() { return cache; }, async match() { return response; }, async keys() { return ['tongping-shell-1.0.0', 'tongping-shell-1.1.0', 'another-app-cache']; }, async delete(key) { deletions.push(key); } };
+  const caches = { async open() { return cache; }, async match() { return response; }, async keys() { return ['tongping-shell-1.0.0', 'tongping-shell-1.1.1', 'another-app-cache']; }, async delete(key) { deletions.push(key); } };
   runInNewContext(code, { self, caches, URL, Response, fetch: async () => response });
   return { events, puts, deletions };
 }

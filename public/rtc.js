@@ -23,16 +23,18 @@ export class PeerSession {
     this.lastSamples = new Map();
     this.lastRestart = 0;
     this.pendingQuality = PRESETS.economy;
-    this.slots = [
-      this.pc.addTransceiver('audio', { direction: 'sendrecv' }),
-      this.pc.addTransceiver('audio', { direction: 'sendrecv' }),
-      this.pc.addTransceiver('video', { direction: 'sendrecv', sendEncodings: [{ maxBitrate: 1200000, maxFramerate: 15 }] }),
-    ];
+    this.pendingTracks = [null, null, null];
+    this.slots = [];
+    // An answerer must adopt the transceivers created by the remote offer.
+    // Chromium does not reuse locally addTransceiver-created, unassociated
+    // slots for that offer; eager creation duplicates slots and makes the
+    // answer recvonly. Only the designated offerer creates initial slots.
+    if (!polite) this.createSlots();
     this.pc.onicecandidate = ({ candidate }) => {
       if (candidate && !this.closed) this.send({ candidate: candidate.toJSON() });
     };
     this.pc.ontrack = (event) => {
-      const index = this.slots.indexOf(event.transceiver);
+      const index = this.mediaSlots().indexOf(event.transceiver);
       const kind = ['voice', 'desktop-audio', 'screen'][index];
       if (!this.closed && kind) onTrack(kind, event.track);
     };
@@ -45,14 +47,37 @@ export class PeerSession {
     this.statsTimer = setInterval(() => this.collectStats(onStats).catch(() => {}), 2000);
   }
 
+  createSlots() {
+    if (this.slots.length) return;
+    this.slots = [
+      this.pc.addTransceiver('audio', { direction: 'sendrecv' }),
+      this.pc.addTransceiver('audio', { direction: 'sendrecv' }),
+      this.pc.addTransceiver('video', { direction: 'sendrecv', sendEncodings: [{ maxBitrate: 1200000, maxFramerate: 15 }] }),
+    ];
+  }
+
+  mediaSlots() {
+    const all = this.pc.getTransceivers();
+    const associated = all.filter((transceiver) => transceiver.mid != null && !transceiver.stopped);
+    // Remote track events can arrive before setRemoteDescription resolves.
+    // The native MID association already exists at that point.
+    return (associated.length ? associated : this.slots.length ? this.slots : all).slice(0, 3);
+  }
+
+  async bindTracks() {
+    await Promise.all(this.slots.map((transceiver, index) => transceiver.sender.replaceTrack(this.pendingTracks[index])));
+  }
+
   async setTrack(slot, track) {
-    if (!this.closed) await this.slots[slot].sender.replaceTrack(track || null);
+    if (this.closed) return;
+    this.pendingTracks[slot] = track || null;
+    if (this.slots[slot]) await this.slots[slot].sender.replaceTrack(track || null);
   }
 
   async applyQuality(preset) {
     if (this.closed) return;
     this.pendingQuality = preset;
-    if (!this.pc.localDescription) return;
+    if (!this.pc.localDescription || !this.slots[2]) return;
     const sender = this.slots[2].sender;
     const parameters = sender.getParameters();
     if (!parameters.encodings?.length) parameters.encodings = [{}];
@@ -77,6 +102,9 @@ export class PeerSession {
     // description may win before this operation reaches the stable-state check.
     const operation = this.signalQueue.then(async () => {
       if (this.closed || this.pc.signalingState !== 'stable') return;
+      this.createSlots();
+      await this.bindTracks();
+      if (this.closed) return;
       await this.pc.setLocalDescription();
       if (!this.closed) this.send({ description: this.pc.localDescription.toJSON() });
     }).catch((error) => {
@@ -113,6 +141,11 @@ export class PeerSession {
       }
       for (const queued of this.candidates.splice(0)) await this.pc.addIceCandidate(queued);
       if (description.type === 'offer') {
+        this.slots = this.mediaSlots();
+        if (this.slots.length !== 3) throw new Error('对方的语音与画面通道不完整，请重试连接。');
+        for (const transceiver of this.slots) transceiver.direction = 'sendrecv';
+        await this.bindTracks();
+        if (this.closed) return;
         await this.pc.setLocalDescription();
         if (!this.closed) this.send({ description: this.pc.localDescription.toJSON() });
       }
@@ -174,5 +207,6 @@ export class PeerSession {
     this.pc.close();
     this.candidates.length = 0;
     this.lastSamples.clear();
+    this.pendingTracks.fill(null);
   }
 }

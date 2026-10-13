@@ -183,6 +183,18 @@ async def run(output, origin):
                 await wait_for(page, "document.getElementById('memberCount').textContent === '3 / 6'")
                 await wait_for(page, "document.getElementById('networkStatus').textContent.includes('已连接 2 / 2')", timeout=30000)
             checks.append('three real Chromium pages join one room and establish all peer connections')
+            for page in pages:
+                await wait_for(page, """(async () => {
+                  const pcs = window.__browserTestConnections || [];
+                  if (pcs.length !== 2) return false;
+                  for (const pc of pcs) {
+                    const reports = [...(await pc.getStats()).values()];
+                    if (!reports.some(r => r.type === 'inbound-rtp' && r.kind === 'audio' && r.bytesReceived > 0)) return false;
+                    if (!reports.some(r => r.type === 'outbound-rtp' && r.kind === 'audio' && r.bytesSent > 0)) return false;
+                  }
+                  return document.querySelectorAll('audio[data-kind="voice"]').length === 2;
+                })()""")
+            checks.append('all six microphone directions send and receive RTP and attach playback elements')
             await assert_layout(owner, 'desktop empty stage invitation and sharing actions remain visible', checks)
             await owner.locator('#shareButton').click()
             for page in pages:

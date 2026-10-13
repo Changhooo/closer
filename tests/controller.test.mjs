@@ -43,6 +43,7 @@ async function harness(options = {}) {
       this.signalingState = type === 'answer' ? 'stable' : 'have-local-offer';
     }
     async setRemoteDescription(value) { this.remoteDescription = value; this.signalingState = value.type === 'offer' ? 'have-remote-offer' : 'stable'; }
+    getTransceivers() { return this.transceivers; }
     async addIceCandidate() {}
     async getStats() { return new Map(); }
     setConfiguration(value) { this.config = value; }

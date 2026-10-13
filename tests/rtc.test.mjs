@@ -9,24 +9,36 @@ class FakePC {
       async replaceTrack(track) { this.track = track; },
       getParameters() { return structuredClone(this.parameters); },
       async setParameters(parameters) { this.parameters = parameters; } };
-    const transceiver = { kind, sender, receiver: {} }; this.transceivers.push(transceiver); return transceiver;
+    const transceiver = { kind, mid: null, direction: options.direction, sender, receiver: { track: { kind } } }; this.transceivers.push(transceiver); return transceiver;
   }
   getTransceivers() { return this.transceivers; }
   async setLocalDescription() {
     const type = this.signalingState === 'have-remote-offer' ? 'answer' : 'offer';
+    if (type === 'offer') this.transceivers.forEach((t, index) => { t.mid = String(index); });
     this.localDescription = { type, sdp: 'fake', toJSON() { return { type: this.type, sdp: this.sdp }; } };
     this.signalingState = type === 'answer' ? 'stable' : 'have-local-offer';
   }
-  async setRemoteDescription(description) { this.remoteDescription = description; this.signalingState = description.type === 'offer' ? 'have-remote-offer' : 'stable'; }
+  async setRemoteDescription(description) {
+    this.remoteDescription = description; this.signalingState = description.type === 'offer' ? 'have-remote-offer' : 'stable';
+    if (description.type === 'offer') {
+      // Model Chromium: an incoming offer does not adopt pre-created local
+      // addTransceiver slots, including those unassociated after rollback.
+      this.transceivers.forEach((t) => { t.mid = null; });
+      const remote = ['audio', 'audio', 'video'].map((kind, index) => {
+        const t = this.addTransceiver(kind, { direction: 'recvonly' }); t.mid = String(index); return t;
+      });
+      for (const transceiver of remote) this.ontrack?.({ transceiver, track: transceiver.receiver.track });
+    }
+  }
   async addIceCandidate(candidate) { this.candidates.push(candidate); }
   async getStats() { return new Map(); }
   restartIce() { this.restarted = true; }
   close() { this.closed = true; }
 }
 
-function session(polite = false) {
+function session(polite = false, onTrack = () => {}) {
   const sent = [], errors = [], pc = new FakePC();
-  const peer = new PeerSession({ ice: {}, polite, send: (value) => sent.push(value), onTrack: () => {}, onState: () => {}, onStats: () => {}, onError: (error) => errors.push(error), factory: () => pc });
+  const peer = new PeerSession({ ice: {}, polite, send: (value) => sent.push(value), onTrack, onState: () => {}, onStats: () => {}, onError: (error) => errors.push(error), factory: () => pc });
   return { peer, pc, sent, errors };
 }
 
@@ -85,4 +97,39 @@ test('restart is requested from offerer and throttled', () => {
   const { peer, sent } = session(true);
   try { peer.restart(); peer.restart(); assert.deepEqual(sent, [{ restart: true }]); }
   finally { peer.close(); }
+});
+
+test('answerer adopts native offered slots, routes early tracks and negotiates both sending directions', async () => {
+  const received = [];
+  const h = session(true, (kind) => received.push(kind));
+  try {
+    const mic = { kind: 'audio' }, sound = { kind: 'audio' }, screen = { kind: 'video' };
+    await h.peer.setTrack(0, mic);
+    await h.peer.setTrack(1, sound);
+    await h.peer.setTrack(2, screen);
+    assert.equal(h.pc.transceivers.length, 0, 'answering must not pre-create competing transceivers');
+    await h.peer.receive({ description: { type: 'offer', sdp: 'offer' } });
+    assert.deepEqual(received, ['voice', 'desktop-audio', 'screen']);
+    assert.equal(h.pc.transceivers.length, 3);
+    assert.ok(h.peer.slots.every((t) => t.direction === 'sendrecv'));
+    assert.deepEqual(h.peer.slots.map((t) => t.sender.track), [mic, sound, screen]);
+    assert.equal(h.sent.at(-1).description.type, 'answer');
+    assert.equal(h.errors.length, 0);
+  } finally { h.peer.close(); }
+});
+
+test('polite rollback remaps sending and received media to newly associated native slots', async () => {
+  const received = [];
+  const h = session(true, (kind) => received.push(kind));
+  try {
+    const mic = { kind: 'audio' };
+    await h.peer.setTrack(0, mic); await h.peer.offer();
+    const old = h.peer.slots;
+    await h.peer.receive({ description: { type: 'offer', sdp: 'collision' } });
+    assert.notEqual(h.peer.slots[0], old[0]);
+    assert.deepEqual(received, ['voice', 'desktop-audio', 'screen']);
+    assert.equal(h.peer.slots[0].sender.track, mic);
+    assert.equal(h.peer.slots[0].direction, 'sendrecv');
+    assert.equal(h.errors.length, 0);
+  } finally { h.peer.close(); }
 });

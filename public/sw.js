@@ -1,6 +1,6 @@
 // Cache only the public application shell. Room/API/signaling responses and
 // invitation URLs must never be persisted. A call always needs a live server.
-const CACHE = 'tongping-shell-1.1.0';
+const CACHE = 'tongping-shell-1.1.1';
 const SHELL = ['/', '/styles.css', '/app.js', '/rtc.js', '/audio-meter.js', '/favicon.svg', '/app.webmanifest', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
