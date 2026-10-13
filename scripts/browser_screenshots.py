@@ -100,6 +100,17 @@ def start_server():
     raise RuntimeError('Screenshot application server did not start')
 
 
+async def wait_for(page, predicate, timeout=30000):
+    # Poll from Python using CDP evaluation rather than an in-page eval timer.
+    # This preserves the application's strict CSP (no unsafe-eval bypass).
+    deadline = asyncio.get_running_loop().time() + timeout / 1000
+    while asyncio.get_running_loop().time() < deadline:
+        if await page.evaluate("() => (" + predicate + ")"):
+            return
+        await asyncio.sleep(.1)
+    raise TimeoutError('Browser condition not reached: ' + predicate)
+
+
 async def assert_layout(page, label, checks):
     result = await page.evaluate("""() => {
       const visible = [...document.querySelectorAll('button, input, select, .panel, .viewer-panel')].filter((el) => {
@@ -152,7 +163,7 @@ async def run(output, origin):
             await owner.locator('#displayName').fill('阿禾')
             await owner.locator('#createButton').click()
             await owner.locator('#room').wait_for(state='visible')
-            await owner.wait_for_function("document.getElementById('micButton').getAttribute('aria-pressed') === 'true'")
+            await wait_for(owner, "document.getElementById('micButton').getAttribute('aria-pressed') === 'true'")
             invitation = owner.url
             for page, name in [(friend, '小林'), (third, '夏夏')]:
                 await page.goto(invitation, wait_until='networkidle')
@@ -161,17 +172,17 @@ async def run(output, origin):
                 await page.locator('#displayName').press('Enter')
                 await page.locator('#room').wait_for(state='visible')
             for page in pages:
-                await page.wait_for_function("document.getElementById('memberCount').textContent === '3 / 6'")
-                await page.wait_for_function("document.getElementById('networkStatus').textContent.includes('已连接 2 / 2')", timeout=30000)
+                await wait_for(page, "document.getElementById('memberCount').textContent === '3 / 6'")
+                await wait_for(page, "document.getElementById('networkStatus').textContent.includes('已连接 2 / 2')", timeout=30000)
             checks.append('three real Chromium pages join one room and establish all peer connections')
             await assert_layout(owner, 'desktop empty stage invitation and sharing actions remain visible', checks)
             await owner.locator('#shareButton').click()
             for page in pages:
-                await page.wait_for_function("(() => { const v = document.getElementById('screenVideo'); return !v.hidden && v.videoWidth > 0 && v.readyState >= 2; })()", timeout=30000)
+                await wait_for(page, "(() => { const v = document.getElementById('screenVideo'); return !v.hidden && v.videoWidth > 0 && v.readyState >= 2; })()", timeout=30000)
             assert await friend.locator('#shareButton').is_disabled()
             assert await third.locator('#shareButton').is_disabled()
-            await owner.wait_for_function("Number(document.getElementById('uploadValue').textContent) > 0", timeout=30000)
-            await friend.wait_for_function("Number(document.getElementById('downloadValue').textContent) > 0", timeout=30000)
+            await wait_for(owner, "Number(document.getElementById('uploadValue').textContent) > 0", timeout=30000)
+            await wait_for(friend, "Number(document.getElementById('downloadValue').textContent) > 0", timeout=30000)
             checks.append('synthetic screen and desktop-audio stream reach both viewers over real WebRTC')
             await assert_layout(owner, 'desktop shared-screen controls and sidebars stay within viewport', checks)
             await owner.screenshot(path=str(output / 'room-desktop.png'), full_page=True)
@@ -198,12 +209,12 @@ async def run(output, origin):
             await owner.locator('#micButton').click()
             assert await owner.locator('#micButton').get_attribute('aria-pressed') == 'false'
             assert await owner.locator('#systemAudioButton').get_attribute('aria-pressed') == 'true'
-            await friend.wait_for_function("!document.getElementById('screenVideo').hidden && document.getElementById('screenVideo').readyState >= 2")
+            await wait_for(friend, "!document.getElementById('screenVideo').hidden && document.getElementById('screenVideo').readyState >= 2")
             checks.append('microphone mute leaves shared screen and desktop-audio enabled')
             await owner.locator('#shareButton').click()
-            await friend.wait_for_function("!document.getElementById('shareButton').disabled")
+            await wait_for(friend, "!document.getElementById('shareButton').disabled")
             await friend.locator('#shareButton').click()
-            await owner.wait_for_function("!document.getElementById('screenVideo').hidden && document.getElementById('screenVideo').videoWidth > 0")
+            await wait_for(owner, "!document.getElementById('screenVideo').hidden && document.getElementById('screenVideo').videoWidth > 0")
             checks.append('screen sharing handoff enables the next participant and delivers new video')
             await friend.locator('#shareButton').click()
             await owner.locator('#leaveButton').click()
@@ -214,7 +225,7 @@ async def run(output, origin):
             await owner.screenshot(path=str(output / 'lobby-mobile.png'), full_page=True)
             manifest = await owner.evaluate("fetch('/app.webmanifest').then(r => r.json())")
             assert manifest['display'] == 'standalone'
-            await owner.wait_for_function("navigator.serviceWorker.controller !== null", timeout=15000)
+            await wait_for(owner, "navigator.serviceWorker.controller !== null", timeout=15000)
             checks.append('browser loads installable manifest and activates the real service worker')
             assert not errors, f'Browser errors: {errors}'
             return {'browser': browser.version, 'checks': checks, 'browser_errors': errors,
