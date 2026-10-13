@@ -31,7 +31,7 @@ python -m unittest discover -s tests -v
 - 实际 Chrome/Edge 的屏幕授权弹窗、Windows 系统声音捕获、手机浏览器播放与语音。
 - 六人同时真实媒体、长期稳定性和低配置服务器容量测试。
 - 不同运营商、跨境线路、真实 coturn 的中继传输。
-- 本环境未提供 Docker CLI，未在这里构建或启动 Docker/Caddy/coturn。CI 中配置了应用镜像构建和健康检查，需上传到 GitHub 后运行。
+- 本地环境未提供 Docker CLI；GitHub Actions 已完成应用镜像构建与容器健康检查。Caddy/coturn、实际域名与证书仍需部署环境验收。
 - 公网域名、证书申请与个人服务器部署尚需目标环境。
 
 请结合 [实际设备验收清单](ACCEPTANCE.md) 验证部署环境。当前版本没有 SFU，人数增加会提高分享者上传负担。
@@ -50,3 +50,17 @@ python -m unittest discover -s tests -v
 - 服务端新增 1 项：新资源可访问，CSP 明确允许同源 manifest 与 worker，图标类型正确。
 
 本环境没有浏览器控制技能，未实际渲染页面、截图或测试桌面安装，也未操作浏览器授权弹窗。响应式 CSS 和可访问控件经过结构检查，实际外观仍需按验收清单检查。v1.0 的 GitHub Actions 已通过应用 Docker 构建与容器健康检查；每次推送都会自动运行包含这些检查的同一流程。
+
+
+## v1.1.1 真实浏览器截图与修复（2026-10-13）
+
+GitHub Actions 使用 Chromium 153.0.8010.12 与 Playwright 1.63.0，在实际服务器上运行三位独立浏览器客户端。24 项浏览器检查全部通过，页面错误为 0；另有 JavaScript 25 项、Python 17 项自动测试，共 42 项，以及应用镜像构建和容器健康检查通过。
+
+[浏览器执行记录](https://github.com/Changhooo/closer/actions/runs/38368190626) · [应用检查](https://github.com/Changhooo/closer/actions/runs/38368190521) · [截图与源码版本记录](images/summary.json) · [测试图](SCREENSHOTS.md)
+
+本次真实浏览器检查发现并修复了两个之前的模拟测试没有覆盖的问题：
+
+- Chrome 应答端不会复用提前创建但未关联的 addTransceiver 通道，原先形成额外接收通道，导致收到的数据不绑定到页面、语音只能单向。现在应答端复用远端 offer 创建的通道，按固定音轨顺序绑定，显式协商双向发送。已确认六个麦克风方向有真实收发 RTP，观看端有实际解码的视频帧，且分享者可以切换。
+- 手机宽度下，画面的最小高度与比例曾让内部容器比外框宽，导致右边缘裁切。已限制画面宽度，并在 320、390、640、800、1024、1280、1440 像素下检查画面、叠层和控件边界。
+
+截图直接来自浏览器，未替换信令、WebRTC、房间 API 或页面 UI。麦克风是 Chromium 的测试设备，共享源是明确标注的 Canvas 与音频测试音轨；因此仍未覆盖系统分享选择窗口、物理麦克风、实际桌面声音、PWA 安装向导或跨运营商 TURN 连接。
