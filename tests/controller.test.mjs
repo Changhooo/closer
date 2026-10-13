@@ -4,11 +4,12 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { JSDOM } from 'jsdom';
 
-async function harness() {
+async function harness(options = {}) {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
   const rtc = await readFile(new URL('../public/rtc.js', import.meta.url), 'utf8');
   const app = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
-  const dom = new JSDOM(html, { url: 'https://share.example.test/', runScripts: 'outside-only' });
+  const audioMeter = await readFile(new URL('../public/audio-meter.js', import.meta.url), 'utf8');
+  const dom = new JSDOM(html, { url: options.url || 'https://share.example.test/', runScripts: 'outside-only' });
   const w = dom.window;
   Object.defineProperty(w, 'isSecureContext', { value: true });
   w.HTMLMediaElement.prototype.play = async function () {};
@@ -49,7 +50,8 @@ async function harness() {
     close() { this.closed = true; }
   };
   const credentials = { roomId: 'abcdefghjk23', key: 'k'.repeat(43), name: '我' };
-  w.fetch = async (url) => ({ ok: true, json: async () => url === '/api/config' ? { maxParticipants: 6, accessKeyRequired: false } : credentials });
+  const fetchCalls = [];
+  w.fetch = async (url) => { fetchCalls.push(url); return { ok: true, json: async () => url === '/api/config' ? { maxParticipants: 6, accessKeyRequired: false } : credentials }; };
   const sent = [];
   w.WebSocket = class {
     static OPEN = 1;
@@ -67,12 +69,13 @@ async function harness() {
     async getDisplayMedia() { const stream = new Stream([new Track('video'), new Track('audio')]); captures.push(stream); return stream; },
   } });
   w.eval(rtc.replace(/export /g, '') + ';window.__rtc = {PeerSession,PRESETS};');
-  w.eval(app.replace(/^import[^\n]+\n/, 'const { PeerSession, PRESETS } = window.__rtc;\n') + '\nwindow.__test = {state, enterRoom, handleMessage, enableMic, disableMic, startShare, stopShare, leaveRoom, render};');
+  w.eval(audioMeter.replace(/export /g, '') + ';window.__AudioMeters = AudioMeters;');
+  w.eval('const { PeerSession, PRESETS } = window.__rtc; const AudioMeters = window.__AudioMeters;\n' + app.replace(/^import[^\n]+\n/gm, '') + '\nwindow.__test = {state, enterRoom, handleMessage, enableMic, disableMic, startShare, stopShare, leaveRoom, render, renderLevels, renderStats};');
   const api = w.__test;
   w.document.getElementById('joinMic').checked = false;
-  await api.enterRoom(credentials);
+  if (options.enter !== false) await api.enterRoom(credentials);
   const peer = (id, extra = {}) => ({ id, name: id, mic: true, sharing: false, systemAudio: false, ...extra });
-  return { w, api, Track, Stream, captures, sent, peer, cleanup() { api.leaveRoom(false); dom.window.close(); } };
+  return { w, api, Track, Stream, captures, sent, peer, fetchCalls, cleanup() { api.leaveRoom(false); dom.window.close(); } };
 }
 
 test('controller supports three other members and renders names as text', async () => {
@@ -150,5 +153,112 @@ test('leaving during a capture prompt stops late media and sends no new publicat
     resolve(capture); await pending;
     assert.ok(capture.getTracks().every((track) => track.readyState === 'ended'));
     assert.equal(h.sent.filter((message) => message.type === 'share-request').length, 0);
+  } finally { h.cleanup(); }
+});
+
+test('opening an invitation selects join and pressing Enter joins without creating a new room', async () => {
+  const link = `https://share.example.test/r/abcdefghjk23#key=${'x'.repeat(43)}`;
+  const h = await harness({ enter: false, url: link });
+  try {
+    const d = h.w.document;
+    assert.equal(d.getElementById('joinFields').hidden, false);
+    assert.equal(d.getElementById('createFields').hidden, true);
+    assert.equal(d.getElementById('joinTab').getAttribute('aria-pressed'), 'true');
+    d.getElementById('displayName').value = '小林';
+    d.getElementById('roomForm').dispatchEvent(new h.w.Event('submit', { bubbles: true, cancelable: true }));
+    for (let i = 0; i < 50 && d.getElementById('room').hidden; i++) await new Promise((r) => setTimeout(r, 5));
+    assert.equal(d.getElementById('room').hidden, false);
+    assert.ok(!h.fetchCalls.includes('/api/rooms'));
+    assert.ok(h.sent.some((message) => message.type === 'join' && message.key === 'x'.repeat(43) && message.name === '小林'));
+    h.api.leaveRoom();
+    assert.equal(d.getElementById('inviteInput').value, '');
+    assert.equal(d.getElementById('createFields').hidden, false);
+  } finally { h.cleanup(); }
+});
+
+test('listening and two volume sliders affect only local playback and preserve microphone sending', async () => {
+  const h = await harness();
+  try {
+    await h.api.handleMessage({ type: 'peer-joined', peer: h.peer('friend', { sharing: true }), epoch: 2 });
+    const session = h.api.state.sessions.get('friend');
+    for (const slot of [0, 1]) session.pc.ontrack({ transceiver: session.slots[slot], track: new h.Track('audio') });
+    await h.api.enableMic();
+    const mic = h.api.state.micStream;
+    const d = h.w.document;
+    const voice = d.querySelector('audio[data-kind="voice"]');
+    const desktop = d.querySelector('audio[data-kind="desktop-audio"]');
+    d.getElementById('voiceVolume').value = '37';
+    d.getElementById('voiceVolume').dispatchEvent(new h.w.Event('input'));
+    d.getElementById('volume').value = '64';
+    d.getElementById('volume').dispatchEvent(new h.w.Event('input'));
+    assert.equal(voice.volume, .37); assert.equal(desktop.volume, .64);
+    d.getElementById('listenButton').click();
+    assert.ok(voice.muted && desktop.muted);
+    assert.equal(session.slots[0].sender.track, mic.getAudioTracks()[0]);
+    assert.equal(mic.getAudioTracks()[0].readyState, 'live');
+    h.api.render();
+    assert.ok(voice.muted && desktop.muted, 'peer redraw must not unmute playback');
+    d.getElementById('listenButton').click();
+    assert.ok(!voice.muted && !desktop.muted);
+    assert.equal(voice.volume, .37); assert.equal(desktop.volume, .64);
+  } finally { h.cleanup(); }
+});
+
+test('speaking indicators follow measured levels and cannot mark a muted peer as speaking', async () => {
+  const h = await harness();
+  try {
+    await h.api.handleMessage({ type: 'peer-joined', peer: h.peer('one'), epoch: 2 });
+    await h.api.handleMessage({ type: 'peer-joined', peer: h.peer('muted', { mic: false }), epoch: 2 });
+    const levels = new Map([['one', { level: .5, speaking: true }], ['muted', { level: 1, speaking: true }]]);
+    h.api.renderLevels(levels);
+    const d = h.w.document;
+    const one = d.querySelector('.member[data-peer="one"]');
+    const muted = d.querySelector('.member[data-peer="muted"]');
+    assert.ok(one.classList.contains('speaking'));
+    assert.equal(one.querySelector('[data-voice-label]').textContent, '正在说话');
+    assert.equal(one.querySelectorAll('.voice-meter .lit').length, 6);
+    assert.ok(!muted.classList.contains('speaking'));
+    assert.equal(muted.querySelectorAll('.voice-meter .lit').length, 0);
+  } finally { h.cleanup(); }
+});
+
+test('network cards use actual peer totals and focused viewing can be exited with Escape', async () => {
+  const h = await harness();
+  try {
+    for (const id of ['one', 'two']) {
+      await h.api.handleMessage({ type: 'peer-joined', peer: h.peer(id), epoch: 2 });
+      h.api.state.sessions.get(id).pc.connectionState = 'connected';
+    }
+    h.api.state.peerStats.set('one', { sent: 1.1, received: .2, rtt: 48, path: 'direct' });
+    h.api.state.peerStats.set('two', { sent: 1.2, received: .3, rtt: 92, path: 'relay' });
+    h.api.renderStats(true);
+    const d = h.w.document;
+    assert.equal(d.getElementById('uploadValue').textContent, '2.30');
+    assert.equal(d.getElementById('downloadValue').textContent, '0.50');
+    assert.equal(d.getElementById('latencyValue').textContent, '92');
+    assert.equal(d.getElementById('detailPath').textContent, '直连 1 · 中继 1');
+    assert.ok(d.getElementById('trafficLine').getAttribute('points'));
+    assert.equal(d.querySelector('.member[data-peer="one"] [data-connection-label]').hidden, true);
+    d.getElementById('focusButton').click();
+    assert.ok(d.getElementById('room').classList.contains('focus-mode'));
+    d.dispatchEvent(new h.w.KeyboardEvent('keydown', { key: 'Escape' }));
+    assert.ok(!d.getElementById('room').classList.contains('focus-mode'));
+    h.api.leaveRoom();
+    assert.equal(d.getElementById('uploadValue').textContent, '—');
+    assert.equal(d.getElementById('trafficLine').getAttribute('points'), '');
+  } finally { h.cleanup(); }
+});
+
+test('screen sharing actions are visibly unavailable while another participant owns sharing', async () => {
+  const h = await harness();
+  try {
+    await h.api.handleMessage({ type: 'peer-joined', peer: h.peer('friend', { name: '夏夏', sharing: true }), epoch: 2 });
+    const d = h.w.document;
+    assert.ok(d.getElementById('shareButton').disabled);
+    assert.ok(d.getElementById('emptyShareButton').hidden);
+    assert.equal(d.getElementById('stageStatus').textContent, '夏夏 正在共享');
+    await h.api.handleMessage({ type: 'peer-state', peer: h.peer('friend', { sharing: false }), epoch: 2 });
+    assert.ok(!d.getElementById('shareButton').disabled);
+    assert.ok(!d.getElementById('emptyShareButton').hidden);
   } finally { h.cleanup(); }
 });

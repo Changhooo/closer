@@ -59,6 +59,19 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(config['maxParticipants'], 6)
         self.assertNotIn('iceServers', config)
 
+    async def test_installable_assets_are_served_with_content_security_policy(self):
+        for path in ['/audio-meter.js', '/sw.js', '/app.webmanifest', '/icon-192.png', '/icon-512.png']:
+            with self.subTest(path=path):
+                response = await self.client.get(path)
+                self.assertEqual(response.status, 200)
+                self.assertIn("worker-src 'self'", response.headers['Content-Security-Policy'])
+                self.assertIn("manifest-src 'self'", response.headers['Content-Security-Policy'])
+                if path.endswith('.png'):
+                    self.assertEqual(response.content_type, 'image/png')
+        manifest = await (await self.client.get('/app.webmanifest')).json()
+        self.assertEqual(manifest['start_url'], '/')
+        self.assertEqual(manifest['display'], 'standalone')
+
     async def test_origin_checks_http_and_websocket(self):
         response = await self.client.post('/api/rooms', headers={'Origin': 'https://evil.example'}, json={})
         self.assertEqual(response.status, 403)

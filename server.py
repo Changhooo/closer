@@ -21,7 +21,8 @@ from aiohttp import WSMsgType, web
 
 ROOT = Path(__file__).parent / "public"
 ROOM_ID = re.compile(r"^[a-z0-9]{12}$")
-ASSETS = {"app.js", "rtc.js", "styles.css", "favicon.svg"}
+ASSETS = {"app.js", "rtc.js", "audio-meter.js", "styles.css", "favicon.svg",
+          "app.webmanifest", "sw.js", "icon-192.png", "icon-512.png"}
 SERVICE_KEY = web.AppKey('service', object)
 
 
@@ -346,7 +347,7 @@ async def headers(request, handler):
         response.headers.update({
             "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
             "Cache-Control": "no-store", "X-Frame-Options": "DENY",
-            "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
+            "Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; media-src 'self' blob:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'",
             "Permissions-Policy": "camera=(), microphone=(self), display-capture=(self)",
         })
     return response
@@ -360,11 +361,11 @@ def create_app(settings=None):
     app.cleanup_ctx.append(service.lifecycle)
 
     async def config(request):
-        return web.json_response({"name": "同屏 Lite", "version": "1.0.0", "maxParticipants": settings.max_participants,
+        return web.json_response({"name": "同屏 Lite", "version": "1.1.0", "maxParticipants": settings.max_participants,
                                   "accessKeyRequired": bool(settings.access_key), "turnConfigured": bool(settings.turn_urls)})
 
     async def health(request):
-        return web.json_response({"status": "ok", "version": "1.0.0"})
+        return web.json_response({"status": "ok", "version": "1.1.0"})
 
     async def index(request):
         if "id" in request.match_info and not ROOM_ID.fullmatch(request.match_info["id"]):

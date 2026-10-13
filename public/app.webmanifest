@@ -1,0 +1,16 @@
+{
+  "id": "/",
+  "name": "同屏 Lite · 一起看，一起聊",
+  "short_name": "同屏 Lite",
+  "description": "一人共享屏幕，多人一起语音。",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#101416",
+  "theme_color": "#101416",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

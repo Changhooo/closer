@@ -3,85 +3,111 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#10191b">
-  <meta name="description" content="一个人共享，所有人一起聊。轻量多人语音与屏幕共享。">
+  <meta name="theme-color" content="#101416">
+  <meta name="description" content="一个人共享屏幕，所有人一起语音。属于朋友们的同屏空间。">
   <title>同屏 Lite · 一起看，一起聊</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/app.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 21h8m-4-4v4m-2-11 5-3v6z"/></symbol>
+      <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8"/></symbol>
+      <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="12" width="5" height="9" rx="2"/><rect x="16" y="12" width="5" height="9" rx="2"/></symbol>
+      <symbol id="i-volume" viewBox="0 0 24 24"><path d="m11 4-5 4H3v8h3l5 4zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+      <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></symbol>
+      <symbol id="i-focus" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16m8-16v16"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="m10 14 4-4m-6 6-1 1a4.2 4.2 0 0 1-6-6l4-4a4.2 4.2 0 0 1 6 0m2 1 1-1a4.2 4.2 0 0 1 6 6l-4 4a4.2 4.2 0 0 1-6 0"/></symbol>
+      <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M2 21v-3a7 7 0 0 1 14 0v3m1-17a4 4 0 0 1 0 8m5 9v-3a7 7 0 0 0-3-6"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+      <symbol id="i-exit" viewBox="0 0 24 24"><path d="M9 4H4v16h5m-1-8h13m-5-5 5 5-5 5"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6zm-4 9 3 3 5-6"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 15v5h16v-5"/></symbol>
+      <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4 3c-1 .4-1 1-1 2m0 3h.01"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 20V4m-6 6 6-6 6 6"/></symbol>
+      <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v16m-6-6 6 6 6-6"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    </defs>
+  </svg>
+  <a class="skip-link" href="#main">跳到主要内容</a>
   <header class="topbar">
-    <a class="brand" href="/" aria-label="同屏 Lite 首页"><span class="brand-icon" aria-hidden="true">▣</span><span>同屏<span class="lite">Lite</span></span></a>
-    <span class="top-caption">一起看，一起聊。</span>
-    <span class="privacy-badge"><span class="dot"></span> 仅在你同意后共享</span>
+    <a class="brand" href="/" aria-label="同屏 Lite 首页"><span class="brand-icon"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg></span><span>同屏<span class="lite">Lite</span></span></a>
+    <span class="top-caption">小小的房间，刚刚好的陪伴。</span>
+    <div class="top-actions"><span class="privacy-badge"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>由你决定何时共享</span><button id="installButton" class="button secondary small" type="button" hidden><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>安装到桌面</button><button id="helpButton" class="icon-button" type="button" aria-label="使用帮助" title="使用帮助"><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg></button></div>
   </header>
-  <main>
-    <section id="lobby" class="lobby">
+  <main id="main">
+    <section id="lobby" class="lobby" aria-labelledby="lobbyTitle">
       <div class="intro">
-        <div class="eyebrow">ONE SCREEN. EVERYONE HERE.</div>
-        <h1>一块屏幕，<br>一起<span>聊。</span></h1>
-        <p class="intro-copy">一起看视频，解释一段代码，<br>或者只是开着语音，陪彼此一会儿。</p>
-        <div class="screen-art" aria-hidden="true">
-          <div class="art-title"><i></i><i></i><i></i><span>our little room</span></div>
-          <div class="art-body"><div class="play-shape"></div><span>SHARE A MOMENT</span></div>
-          <div class="art-person one"><b>你</b><span class="wave">▂▆▃▇▅</span></div>
-          <div class="art-person two"><b>TA</b><span class="wave">▃▇▅▂▆</span></div>
+        <div class="eyebrow"><span class="dot"></span> 一个画面 · 所有人都在</div>
+        <h1 id="lobbyTitle">一块屏幕，<br>让我们<span>靠近一点。</span></h1>
+        <p class="intro-copy">一起看视频、聊代码、分享游戏时刻。<br>开一个房间，把朋友们请进来。</p>
+        <div class="app-preview" aria-label="界面示意，展示屏幕共享和多人语音">
+          <div class="preview-top"><span><i></i><i></i><i></i></span><span>周末同屏小队</span><small>界面示意</small></div>
+          <div class="preview-body"><div class="preview-sidebar"><div class="preview-person"><span class="mini-avatar mint">你</span><span>你<small>正在共享屏幕</small></span><b class="tiny-wave">▂▅▃▇</b></div><div class="preview-person"><span class="mini-avatar purple">林</span><span>小林<small>正在说话</small></span><b class="tiny-wave">▃▆▅▂</b></div><div class="preview-person"><span class="mini-avatar peach">夏</span><span>夏夏<small>麦克风开启</small></span></div></div><div class="preview-screen"><div class="preview-window"><div class="preview-window-bar"><span></span><span></span><span></span></div><svg class="preview-scene" viewBox="0 0 320 174" aria-hidden="true"><rect width="320" height="174" fill="#344f49"/><circle cx="246" cy="46" r="24" fill="#dfefb8"/><path d="M0 125 75 59l55 66 55-35 135 80v4H0" fill="#6e9b86"/><path d="m0 159 82-42 60 50 78-75 100 63v19H0" fill="#b1c7a0"/><path d="M160 119v32l27-16z" fill="#182b28"/></svg></div><div class="preview-caption"><span class="dot"></span>你正在共享 · 声音已开启</div></div></div>
+          <div class="preview-bottom"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg><svg class="icon" aria-hidden="true"><use href="#i-headphones"/></svg><span><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg>共享屏幕</span><svg class="icon" aria-hidden="true"><use href="#i-volume"/></svg></div>
         </div>
-        <div class="intro-notes"><span>无需注册</span><span>双向语音</span><span>默认省流</span></div>
+        <ol class="quick-steps"><li><span>01</span><div>创建房间<small>昵称就够了</small></div></li><li><span>02</span><div>邀请朋友<small>发一个链接</small></div></li><li><span>03</span><div>一起看聊<small>语音各自开启</small></div></li></ol>
       </div>
       <div class="join-card">
-        <div class="card-kicker">你的同屏空间</div>
-        <h2 id="joinTitle">从这里开始</h2>
-        <p id="joinSubtitle">创建房间，把邀请链接发给朋友们。</p>
+        <div class="card-kicker">YOUR LITTLE ROOM</div>
+        <h2 id="joinTitle">朋友们，从这里集合。</h2>
+        <p id="joinSubtitle">无需注册，房间随开随用。</p>
+        <div class="lobby-tabs" aria-label="选择加入方式"><button id="createTab" class="lobby-tab selected" type="button" aria-pressed="true">创建房间</button><button id="joinTab" class="lobby-tab" type="button" aria-pressed="false">加入房间</button></div>
         <form id="roomForm">
-          <label for="displayName">怎么称呼你</label>
-          <input id="displayName" name="name" maxlength="24" placeholder="输入你的昵称" autocomplete="nickname" required>
-          <label class="checkbox-label"><input id="joinMic" type="checkbox" checked><span>加入后开启麦克风</span></label>
-          <div id="accessKeyRow" hidden><label for="accessKey">创建房间口令</label><input id="accessKey" type="password" maxlength="256" autocomplete="off" placeholder="服务器管理员设置的口令"></div>
-          <button id="createButton" class="button primary wide" type="submit">创建我的房间 <span aria-hidden="true">↗</span></button>
-          <div class="divider"><span>已经收到邀请？</span></div>
-          <label for="inviteInput">邀请链接</label>
-          <input id="inviteInput" type="text" autocomplete="off" spellcheck="false" placeholder="在这里粘贴完整邀请链接">
-          <button id="joinButton" class="button secondary wide" type="button">加入房间</button>
+          <label for="displayName">你的昵称</label>
+          <input id="displayName" name="name" maxlength="24" placeholder="朋友们怎么称呼你？" autocomplete="nickname" required>
+          <label class="checkbox-label"><input id="joinMic" type="checkbox" checked><span><strong>加入时开启麦克风</strong><small>浏览器会先征求你的授权</small></span><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg></label>
+          <div id="createFields"><div id="accessKeyRow" hidden><label for="accessKey">创建房间口令</label><input id="accessKey" type="password" maxlength="256" autocomplete="off" placeholder="服务器管理员设置的口令"></div><button id="createButton" class="button primary wide" type="submit"><span id="createLabel">创建一个房间</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
+          <div id="joinFields" hidden><label for="inviteInput">朋友发来的邀请链接</label><input id="inviteInput" type="url" autocomplete="off" spellcheck="false" placeholder="https://…/r/…#key=…"><p class="small-note">粘贴完整链接，房间钥匙已包含在里面。</p><button id="joinButton" class="button primary wide" type="button"><span id="joinLabel">加入朋友的房间</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></button></div>
         </form>
-        <p id="capacityNote" class="small-note">默认最多 6 人，一次只共享一块屏幕。每个人都能语音。</p>
-        <p id="compatibility" class="compatibility" hidden></p>
+        <div class="join-note"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg><p id="capacityNote">默认最多 6 人。一人共享，所有人都能语音。</p></div>
+        <p id="compatibility" class="compatibility" role="status" hidden></p>
+        <button id="lobbyHelpButton" class="text-button" type="button">第一次用？查看简单指南 <span aria-hidden="true">↗</span></button>
       </div>
     </section>
 
-    <section id="room" class="room" hidden>
-      <div class="room-heading"><div><div class="eyebrow">YOUR SHARED SPACE</div><h1>这一刻，一起看。</h1></div><div class="room-heading-actions"><span id="roomTag" class="room-tag"></span><button id="inviteButton" class="button secondary small" type="button">复制邀请 ↗</button></div></div>
+    <section id="room" class="room" aria-label="同屏房间" hidden>
+      <div class="room-heading"><div class="room-title"><div class="eyebrow">你们的同屏空间</div><div class="room-title-line"><h1>一起看，一起聊。</h1><span id="roomConnection" class="status-pill">正在连接</span></div></div><div class="room-heading-actions"><span id="roomTag" class="room-tag"></span><span id="roomElapsed" class="room-elapsed" title="本次在房间停留的时间">00:00</span><button id="inviteButton" class="button primary small" type="button"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg>邀请朋友</button><button id="leaveButton" class="button danger small" type="button"><svg class="icon" aria-hidden="true"><use href="#i-exit"/></svg>离开</button></div></div>
       <div class="room-layout">
+        <aside class="people-sidebar" aria-label="房间成员">
+          <div class="panel people-panel"><div class="side-title"><span><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>房间成员</span><span id="memberCount">1 / 6</span></div><p class="section-description">声音，让大家在一起。</p><div id="selfMember" class="member self-member"><span class="avatar self-avatar" id="selfAvatar">你</span><div class="member-copy"><strong><span id="selfName">你</span><span class="self-tag">你</span></strong><small id="selfState">麦克风已关闭</small><span id="selfMeter" class="voice-meter" role="meter" aria-label="你的麦克风音量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div><span class="member-status" id="selfMicStatus" title="麦克风已关闭"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg></span></div><div id="membersList" class="members-list"></div><button id="sidebarInviteButton" class="button secondary wide" type="button"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg>再叫上一个朋友</button></div>
+          <div class="room-note"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg><p>只有你主动选择后，<br>屏幕才会分享出去。</p></div>
+        </aside>
         <div class="viewer-column">
-          <div id="stage" class="stage">
+          <div class="viewer-panel"><div class="stage-heading"><span><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><strong id="stageStatus">等待共享画面</strong></span><button id="focusButton" class="icon-button" type="button" aria-pressed="false" aria-label="进入专注模式" title="专注模式"><svg class="icon" aria-hidden="true"><use href="#i-focus"/></svg></button></div><div id="stage" class="stage">
             <video id="screenVideo" autoplay playsinline muted hidden></video>
-            <div id="stageEmpty" class="stage-empty"><div class="empty-symbol" aria-hidden="true">▣</div><h2 id="stageTitle">你的屏幕，准备好了。</h2><p id="stageHint">邀请朋友加入，然后点击下方「共享屏幕」。</p><button id="emptyInviteButton" class="button secondary small" type="button">复制邀请链接</button></div>
+            <div id="stageEmpty" class="stage-empty"><div class="empty-illustration" aria-hidden="true"><span class="empty-orbit"></span><div class="empty-screen"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg></div><span class="empty-person ep-one">你</span><span class="empty-person ep-two"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg></span></div><span class="empty-kicker">房间已经准备好</span><h2 id="stageTitle">把朋友们请进来吧。</h2><p id="stageHint">复制邀请链接，朋友加入后就能一起看、一起聊。</p><div class="empty-actions"><button id="emptyInviteButton" class="button secondary small" type="button"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg>复制邀请链接</button><button id="emptyShareButton" class="button primary small" type="button"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg>共享我的屏幕</button></div></div>
             <div id="stageOverlay" class="stage-overlay" hidden><span id="screenOwner"></span><span id="screenSpec"></span></div>
+          </div></div>
+          <div class="controlbar" aria-label="通话和屏幕操作">
+            <button id="micButton" class="control" type="button" aria-pressed="false"><span class="control-icon"><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg></span><span id="micLabel">开启麦克风</span></button>
+            <button id="listenButton" class="control active" type="button" aria-pressed="true"><span class="control-icon"><svg class="icon" aria-hidden="true"><use href="#i-headphones"/></svg></span><span id="listenLabel">收听已开启</span></button>
+            <button id="shareButton" class="button primary share-control" type="button"><svg class="icon" aria-hidden="true"><use href="#i-screen"/></svg><span id="shareLabel">共享屏幕</span></button>
+            <button id="systemAudioButton" class="control" type="button" aria-pressed="false" disabled><span class="control-icon"><svg class="icon" aria-hidden="true"><use href="#i-volume"/></svg></span><span id="systemAudioLabel">共享声音</span></button>
+            <button id="fullscreenButton" class="control" type="button" aria-label="全屏观看" title="全屏观看"><span class="control-icon"><svg class="icon" aria-hidden="true"><use href="#i-expand"/></svg></span><span>全屏</span></button>
           </div>
-          <div class="controlbar">
-            <button id="micButton" class="control" type="button" aria-pressed="false"><span class="control-glyph" aria-hidden="true">◉</span><span id="micLabel">开启语音</span></button>
-            <button id="shareButton" class="button primary" type="button">▣ 共享屏幕</button>
-            <button id="systemAudioButton" class="control" type="button" aria-pressed="false" disabled><span class="control-glyph" aria-hidden="true">♫</span><span id="systemAudioLabel">共享声音</span></button>
-            <button id="fullscreenButton" class="control icon-only" type="button" aria-label="全屏观看" title="全屏观看">⛶</button>
-            <button id="leaveButton" class="control leave" type="button">离开</button>
-          </div>
-          <div class="under-stage"><span id="networkStatus"><span class="dot"></span> 等待另一位加入</span><span id="trafficStatus">语音与画面实时传送</span></div>
-          <div id="audioPrompt" class="inline-notice" hidden>浏览器暂停了声音播放。<button id="resumeAudio" type="button">点击接通声音</button></div>
-          <div id="reconnectPrompt" class="inline-notice" hidden>连接尚未恢复。<button id="reconnectButton" type="button">重新连接</button></div>
+          <div class="under-stage"><span id="networkStatus">等待朋友们加入</span><span id="trafficStatus">语音与画面实时传送</span></div>
+          <div id="audioPrompt" class="inline-notice" role="status" hidden>浏览器暂停了声音播放。<button id="resumeAudio" type="button">点击接通声音</button></div>
+          <div id="reconnectPrompt" class="inline-notice" role="status" hidden>连接尚未恢复。<button id="reconnectButton" type="button">重新连接</button></div>
+          <div class="network-cards" aria-label="实时网络数据"><div class="network-card"><span><svg class="icon" aria-hidden="true"><use href="#i-up"/></svg>总上传</span><strong id="uploadValue">—</strong><small>Mbps</small></div><div class="network-card"><span><svg class="icon" aria-hidden="true"><use href="#i-down"/></svg>总下载</span><strong id="downloadValue">—</strong><small>Mbps</small></div><div class="network-card"><span>网络往返</span><strong id="latencyValue">—</strong><small id="latencyHint">等待测量</small></div><div class="network-card graph-card"><span>最近 60 秒流量</span><svg viewBox="0 0 140 30" class="traffic-graph" role="img" aria-label="总上传与下载流量趋势"><path d="M0 29h140"/><polyline id="trafficLine" points=""/></svg><small>上传 + 下载</small></div></div>
         </div>
-        <aside class="sidebar">
-          <div class="side-card"><div class="side-title">在这个房间 <span id="memberCount">1 / 6</span></div><div class="member"><span class="avatar self-avatar" id="selfAvatar">你</span><div><strong id="selfName">你</strong><small id="selfState">麦克风已关闭</small></div><span class="self-tag">你</span></div><div id="membersList" class="members-list"></div></div>
-          <div class="side-card"><div class="side-title">画面与声音</div><label for="quality">共享画质</label><select id="quality"><option value="economy">省流 · 720p / 15 帧</option><option value="balanced">均衡 · 720p / 30 帧</option><option value="clear">清晰 · 1080p / 30 帧</option><option value="smooth">流畅 · 1080p / 60 帧</option></select><p id="qualityHint" class="small-note">画面码率上限 1.2 Mbps，适合网页和代码。</p><label for="volume">听到的共享声音 <span id="volumeValue">80%</span></label><input id="volume" type="range" min="0" max="100" value="80"><p class="small-note">只调整对方共享的电脑声音，语音通话保持独立。</p></div>
-          <div class="side-card tip-card"><span class="tip-icon" aria-hidden="true">✦</span><h3>把声音也分享出去</h3><p>使用 Chrome / Edge，选择浏览器标签页并勾选「分享标签页音频」。桌面声音以系统弹窗提供的选项为准。</p><p>戴上耳机，能减少语音回声。</p></div>
-          <details class="connection-details"><summary>查看连接信息</summary><dl><dt>传输方式</dt><dd id="detailPath">等待连接</dd><dt>最慢往返</dt><dd id="detailRtt">—</dd><dt>总上传 / 下载</dt><dd id="detailTraffic">—</dd><dt>实际画面</dt><dd id="detailVideo">—</dd></dl><p class="small-note">往返时间不包含编码和播放延迟。观看人数增加时，共享者总上传会增加。</p><button id="retryConnection" class="button secondary small" type="button">重试连接</button></details>
+        <aside class="settings-sidebar" aria-label="画面和声音设置">
+          <div class="panel settings-panel"><div class="side-title">画面设置 <span class="setting-tag">共享者生效</span></div><label for="quality">共享画质</label><select id="quality"><option value="economy">省流 · 720p / 15 帧</option><option value="balanced">均衡 · 720p / 30 帧</option><option value="clear">清晰 · 1080p / 30 帧</option><option value="smooth">流畅 · 1080p / 60 帧</option></select><div class="quality-scale" aria-hidden="true"><span>省带宽</span><span>更清晰</span></div><p id="qualityHint" class="small-note">每位观看者画面码率上限 1.2 Mbps。</p><div class="settings-divider"></div><div class="side-title">收听音量 <span class="setting-tag">仅影响自己</span></div><label for="voiceVolume"><span><svg class="icon" aria-hidden="true"><use href="#i-mic"/></svg>朋友的语音</span><output id="voiceVolumeValue" for="voiceVolume">100%</output></label><input id="voiceVolume" type="range" min="0" max="100" value="100"><label for="volume"><span><svg class="icon" aria-hidden="true"><use href="#i-volume"/></svg>共享的电脑声音</span><output id="volumeValue" for="volume">80%</output></label><input id="volume" type="range" min="0" max="100" value="80"><p class="small-note">语音和电脑声音分开调整。</p></div>
+          <details class="panel connection-details"><summary><span class="dot"></span>连接详情</summary><dl><dt>传输方式</dt><dd id="detailPath">等待连接</dd><dt>最慢往返</dt><dd id="detailRtt">—</dd><dt>总上传 / 下载</dt><dd id="detailTraffic">—</dd><dt>实际画面</dt><dd id="detailVideo">—</dd></dl><p class="small-note">往返时间不包含编码与播放延迟。观看人数增加时，共享者总上传也会增加。</p><button id="retryConnection" class="button secondary small" type="button">重试连接</button></details>
+          <div class="tip-card"><svg class="icon" aria-hidden="true"><use href="#i-headphones"/></svg><div><h3>声音也一起分享</h3><p>共享视频时，选择浏览器标签页，并勾选「分享标签页音频」。戴上耳机，聊天更清楚。</p><button id="roomHelpButton" class="text-button" type="button">查看使用指南 ↗</button></div></div>
         </aside>
       </div>
     </section>
   </main>
-  <footer class="footer"><span>同屏 Lite</span><span>一个轻量的，属于你们的空间。</span><span>v1.0.0</span></footer>
+  <footer class="footer"><span>同屏 Lite <span class="footer-version">v1.1.0</span></span><span>一个画面，一群朋友，一段好时光。</span></footer>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <dialog id="inviteDialog"><div class="dialog-heading"><h2>邀请朋友们</h2><button id="closeInvite" class="dialog-close" aria-label="关闭" type="button">×</button></div><p>完整链接包含房间钥匙，只发给你想邀请的人。</p><label for="inviteLink">邀请链接</label><input id="inviteLink" readonly><button id="copyDialogLink" class="button primary wide" type="button">复制完整链接</button></dialog>
+  <dialog id="inviteDialog" aria-labelledby="inviteDialogTitle"><div class="dialog-heading"><h2 id="inviteDialogTitle">邀请朋友们</h2><button id="closeInvite" class="icon-button" aria-label="关闭邀请窗口" type="button"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div><p>完整链接包含房间钥匙，只发给你想邀请的人。</p><label for="inviteLink">邀请链接</label><input id="inviteLink" readonly><button id="copyDialogLink" class="button primary wide" type="button">复制完整链接</button></dialog>
+  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpTitle"><div class="dialog-heading"><h2 id="helpTitle">一起看聊，只要三步。</h2><button id="closeHelp" class="icon-button" aria-label="关闭帮助" type="button"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div><ol class="help-steps"><li><span>1</span><div><h3>开个房间，叫上朋友</h3><p>输入昵称，创建房间。把完整邀请链接发给朋友，TA 打开链接就能加入。</p></div></li><li><span>2</span><div><h3>选一块画面，开始分享</h3><p>点击「共享屏幕」，选择标签页、窗口或桌面。一次一人分享，停止后可以换人。</p></div></li><li><span>3</span><div><h3>麦克风和视频声音，各自控制</h3><p>每个人都能开启麦克风。分享视频时请勾选浏览器的音频选项；关麦克风不会关闭共享声音。</p></div></li></ol><div class="help-install"><h3>像软件一样放在桌面</h3><p>电脑 Chrome / Edge 支持安装此应用。出现「安装到桌面」按钮时点击即可；也可以从浏览器菜单选择「安装应用」。通话需要联网。</p></div><button id="helpDone" class="button primary wide" type="button">明白了，开始吧</button></dialog>
   <div id="remoteAudio" hidden></div>
+  <noscript><p class="compatibility">请开启 JavaScript 以使用语音与屏幕共享。</p></noscript>
 </body>
 </html>
